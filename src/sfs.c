@@ -52,14 +52,14 @@ lstr_array read_stdin_lines() {
 	lstr_array_init(&la);
 	char *line = NULL;
 	size_t len = 0;
-	size_t nread;
+	ssize_t nread;
 	while ((nread = getline(&line, &len, stdin)) != -1) {
 		if (nread != 0 && line[nread-1] == '\n') {
 			line[nread-1] = '\0';
 			nread--;
 		}
 		if (nread != 0) {
-			lstr l = {line, nread};
+			lstr l = {line, (size_t)nread};
 			lstr_array_add(&la, l);
 		}
 		line = NULL;
@@ -70,7 +70,7 @@ lstr_array read_stdin_lines() {
 
 void lstr_tolower(lstr l) {
 	for (size_t i = 0; i < l.length; ++i) {
-		l.str[i] = tolower(l.str[i]);
+		l.str[i] = (char)tolower(l.str[i]);
 	}
 }
 
@@ -78,16 +78,21 @@ lstr_array tokenize(const char *str, const char *delim) {
 	lstr_array la;
 	lstr_array_init(&la);
 	char *dstr = strdup(str);
+	if (!dstr)
+		goto fail;
 	char *s = dstr;
 	char *tok = NULL;
 	while ((tok = strtok(s, delim)) != NULL) {
 		char *tokstr = strdup(tok);
+		if (!tokstr)
+			goto fail;
 		size_t len = strlen(tokstr);
 		lstr l = {tokstr, len};
 		lstr_tolower(l);
 		lstr_array_add(&la, l);
 		s = NULL;
 	}
+fail:
 	free(dstr);
 	return la;
 }
@@ -98,6 +103,8 @@ int fuzzy_match(const char *str, const char *input) {
 	}
 	lstr_array tokens = tokenize(input, " ");
 	lstr line_lstr = {strdup(str), strlen(str)};
+	if (!line_lstr.str)
+		goto fail;
 	int ret = 1;
 	lstr_tolower(line_lstr);
 	for (size_t i = 0; i < tokens.length; ++i) {
@@ -106,6 +113,7 @@ int fuzzy_match(const char *str, const char *input) {
 			break;
 		}
 	}
+fail:
 	free(line_lstr.str);
 	lstr_array_free(&tokens);
 	return ret;
@@ -123,7 +131,7 @@ void update_matches(const char *input, lstr_array *current_matches) {
 	*current_matches = new_matches;
 }
 
-void print_matches(const char *input, lstr_array *current_matches, int choice, int max_lines) {
+void print_matches(const char *input, lstr_array *current_matches, size_t choice, size_t max_lines) {
 	size_t input_len = strlen(input);
 	move(0, 0);
 	printw("%s\n\n", input);
@@ -139,15 +147,11 @@ void print_matches(const char *input, lstr_array *current_matches, int choice, i
 	/* for (; i < max_lines; ++i) { */
 	/* 	printw("\n"); */
 	/* } */
-	move(0, input_len);
+	move(0, (int)input_len);
 }
 
-int update_choice(int choice, const lstr_array *current_matches, int max_lines) {
-	if (choice < 0) {
-		choice = 0;
-		return choice;
-	}
-	int bound = MIN(current_matches->length - 1, max_lines - 1);
+size_t update_choice(size_t choice, const lstr_array *current_matches, size_t max_lines) {
+	size_t bound = MIN(current_matches->length - 1, max_lines - 1);
 	choice = MIN(bound, choice);
 	return choice;
 }
@@ -170,12 +174,12 @@ int main() {
 	}
 	char *output = NULL;
 
-	const int MAX_LINES = LINES - 3;
+	const size_t MAX_LINES = (size_t)LINES - 3;
 
 	char input[1024] = {0};
 	int input_len = 0;
 	int c;
-	int choice = 0;
+	size_t choice = 0;
 	print_matches(input, &current_matches, choice, MAX_LINES);
 	while ((c = getch()) != EOF) {
 		if (c == KEY_BACKSPACE || c == 0x7F) { //backspace
@@ -193,12 +197,13 @@ int main() {
 			output = strdup(current_matches.lines[choice].str);
 			break;
 		} else if (c == KEY_UP) {
-			choice--;
+			if (choice != 0)
+				choice--;
 		} else if (c == KEY_DOWN) {
 			choice++;
 		} else {
 			if (isprint(c)) {
-				input[input_len++] = tolower(c);
+				input[input_len++] = (char)tolower(c);
 				update_matches(input, &current_matches);
 				clear();
 			} else {
