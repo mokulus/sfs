@@ -245,7 +245,6 @@ int main(int argc, char *argv[]) {
 				clear();
 				printw("unknown %d %#x\n", c, c);
 				getch();
-				getch();
 				continue;
 			}
 		}
