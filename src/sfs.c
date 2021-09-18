@@ -148,6 +148,8 @@ void print_matches(const char *input, lstr_array *current_matches, size_t choice
 }
 
 void update_choice(ssize_t diff, size_t *choice, size_t *view_offset, const lstr_array *current_matches, size_t max_lines) {
+	if (current_matches->length == 0)
+		return;
 	if (diff < 0) {
 		diff += (ssize_t)current_matches->length;
 	}
