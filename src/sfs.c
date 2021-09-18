@@ -4,9 +4,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
 typedef struct {
 	char *str;
 	size_t length;
@@ -103,9 +100,9 @@ int fuzzy_match(const char *str, const char *input) {
 	}
 	lstr_array tokens = tokenize(input, " ");
 	lstr line_lstr = {strdup(str), strlen(str)};
+	int ret = 1;
 	if (!line_lstr.str)
 		goto fail;
-	int ret = 1;
 	lstr_tolower(line_lstr);
 	for (size_t i = 0; i < tokens.length; ++i) {
 		if (!strstr(line_lstr.str, tokens.lines[i].str)) {
@@ -131,16 +128,16 @@ void update_matches(const char *input, lstr_array *current_matches) {
 	*current_matches = new_matches;
 }
 
-void print_matches(const char *input, lstr_array *current_matches, size_t choice, size_t max_lines) {
+void print_matches(const char *input, lstr_array *current_matches, size_t choice, size_t view_offset, size_t max_lines, size_t max_cols) {
 	size_t input_len = strlen(input);
 	move(0, 0);
 	printw("%s\n\n", input);
-	size_t i = 0;
-	for (; i < current_matches->length && i < max_lines; ++i) {
+	size_t i = view_offset;
+	size_t counter = 0;
+	for (; i < current_matches->length && counter < max_lines; ++i, ++counter) {
 		if (i == choice)
 			attron(A_REVERSE);
-		if (i < max_lines)
-			printw("%s\n", current_matches->lines[i]);
+		printw("%.*s\n", max_cols, current_matches->lines[i]);
 		if (i == choice)
 			attroff(A_REVERSE);
 	}
@@ -150,21 +147,26 @@ void print_matches(const char *input, lstr_array *current_matches, size_t choice
 	move(0, (int)input_len);
 }
 
-size_t update_choice(size_t choice, const lstr_array *current_matches, size_t max_lines) {
-	size_t bound = MIN(current_matches->length - 1, max_lines - 1);
-	choice = MIN(bound, choice);
-	return choice;
+void update_choice(size_t *choice, size_t *view_offset, const lstr_array *current_matches, size_t max_lines) {
+	size_t max_choice = current_matches->length - 1;
+	if (*choice > max_choice)
+		*choice = max_choice;
+	if (*choice == *view_offset + max_lines) {
+		(*view_offset)++;
+	}
 }
 
 int main() {
-	FILE *tty = fopen("/dev/tty", "rw");
-	SCREEN *screen = newterm(NULL, stdout, tty);
+	FILE *tty_in = fopen("/dev/tty", "r");
+	FILE *tty_out = fopen("/dev/tty", "w");
+	SCREEN *screen = newterm(NULL, tty_out, tty_in);
 	set_term(screen);
 	noecho();
 	cbreak();
 	scrollok(stdscr, TRUE);
 	idlok(stdscr, TRUE);
 	keypad(stdscr, TRUE);
+	set_escdelay(0);
 
 	lstr_array input_lines = read_stdin_lines();
 	lstr_array current_matches;
@@ -174,13 +176,14 @@ int main() {
 	}
 	char *output = NULL;
 
-	const size_t MAX_LINES = (size_t)LINES - 3;
-
+	size_t MAX_LINES = (size_t)LINES - 3;
+	size_t MAX_COLS = (size_t)COLS - 1;
 	char input[1024] = {0};
 	int input_len = 0;
 	int c;
 	size_t choice = 0;
-	print_matches(input, &current_matches, choice, MAX_LINES);
+	size_t view_offset = 0;
+	print_matches(input, &current_matches, choice, view_offset, MAX_LINES, MAX_COLS);
 	while ((c = getch()) != EOF) {
 		if (c == KEY_BACKSPACE || c == 0x7F) { //backspace
 			input[--input_len] = '\0';
@@ -196,11 +199,21 @@ int main() {
 		} else if (c == KEY_ENTER || c == 0xA) {
 			output = strdup(current_matches.lines[choice].str);
 			break;
+		} else if (c == KEY_EXIT || c == 0x1B) {
+			break;
 		} else if (c == KEY_UP) {
 			if (choice != 0)
 				choice--;
+			if (choice < view_offset)
+				view_offset--;
 		} else if (c == KEY_DOWN) {
 			choice++;
+		} else if (c == KEY_RESIZE) {
+			endwin();
+			refresh();
+			clear();
+			MAX_LINES = (size_t)LINES - 3;
+			MAX_COLS = (size_t)COLS - 1;
 		} else {
 			if (isprint(c)) {
 				input[input_len++] = (char)tolower(c);
@@ -210,11 +223,12 @@ int main() {
 				clear();
 				printw("unknown %#x\n", c);
 				getch();
+				getch();
 				continue;
 			}
 		}
-		choice = update_choice(choice, &current_matches, MAX_LINES);
-		print_matches(input, &current_matches, choice, MAX_LINES);
+		update_choice(&choice, &view_offset, &current_matches, MAX_LINES);
+		print_matches(input, &current_matches, choice, view_offset, MAX_LINES, MAX_COLS);
 		if (current_matches.length == 1) {
 			output = strdup(current_matches.lines[0].str);
 			break;
@@ -228,5 +242,8 @@ int main() {
 		fflush(stdout);
 		printf("%s\n", output);
 		free(output);
+		return 0;
+	} else {
+		return 1;
 	}
 }
