@@ -197,7 +197,11 @@ int main(int argc, char *argv[]) {
 	size_t view_offset = 0;
 	print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 	while ((c = getch()) != EOF) {
-		if (c == KEY_BACKSPACE || c == 0x7F) { //backspace
+		int should_break = 0;
+		switch (c) {
+		case KEY_BACKSPACE:
+		case 0x7F:
+		case '\b':
 			input[--input_len] = '\0';
 			if (input_len < 0)
 				input_len = 0;
@@ -208,37 +212,45 @@ int main(int argc, char *argv[]) {
 			}
 			update_matches(input, &current_matches);
 			clear();
-		} else if (c == KEY_ENTER || c == 0xA) {
+			break;
+		case '\n':
 			output = strdup(current_matches.lines[choice].str);
+			should_break = 1;
 			break;
-		} else if (c == KEY_EXIT || c == 0x1B) {
+		case 0x1B: // escape
+			should_break = 1;
 			break;
-		} else if (c == KEY_UP) {
+		case KEY_UP:
 			if (choice != 0)
 				choice--;
 			if (choice < view_offset)
 				view_offset--;
-		} else if (c == KEY_DOWN) {
+			break;
+		case KEY_DOWN:
 			choice++;
-		} else if (c == KEY_RESIZE) {
+			break;
+		case KEY_RESIZE:
 			endwin();
 			refresh();
 			clear();
 			MAX_LINES = (size_t)LINES - 3;
 			MAX_COLS = (size_t)COLS - 1;
-		} else {
+			break;
+		default:
 			if (isprint(c)) {
 				input[input_len++] = (char)tolower(c);
 				update_matches(input, &current_matches);
 				clear();
 			} else {
 				clear();
-				printw("unknown %#x\n", c);
+				printw("unknown %d %#x\n", c, c);
 				getch();
 				getch();
 				continue;
 			}
 		}
+		if (should_break)
+			break;
 		update_choice(&choice, &view_offset, &current_matches, MAX_LINES);
 		print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 		if (current_matches.length == 1) {
