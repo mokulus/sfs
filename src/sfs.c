@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 
 typedef struct {
 	char *str;
@@ -128,10 +129,9 @@ void update_matches(const char *input, lstr_array *current_matches) {
 	*current_matches = new_matches;
 }
 
-void print_matches(const char *input, lstr_array *current_matches, size_t choice, size_t view_offset, size_t max_lines, size_t max_cols) {
-	size_t input_len = strlen(input);
+void print_matches(const char *input, lstr_array *current_matches, size_t choice, size_t view_offset, const char *prompt, size_t max_lines, size_t max_cols) {
 	move(0, 0);
-	printw("%s\n", input);
+	printw("%s%s\n", prompt, input);
 	size_t i = view_offset;
 	size_t counter = 0;
 	for (; i < current_matches->length && counter < max_lines; ++i, ++counter) {
@@ -144,7 +144,7 @@ void print_matches(const char *input, lstr_array *current_matches, size_t choice
 	/* for (; i < max_lines; ++i) { */
 	/* 	printw("\n"); */
 	/* } */
-	move(0, (int)input_len);
+	move(0, (int)(strlen(input) + strlen(prompt)));
 }
 
 void update_choice(size_t *choice, size_t *view_offset, const lstr_array *current_matches, size_t max_lines) {
@@ -156,7 +156,19 @@ void update_choice(size_t *choice, size_t *view_offset, const lstr_array *curren
 	}
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+	char *prompt = strdup("");
+	int opt;
+	while ((opt = getopt(argc, argv, "p:")) != -1) {
+		switch (opt) {
+		case 'p':
+			prompt = strdup(optarg);
+			break;
+		default:
+			fprintf(stderr, "usage: %s [-p]\n", argv[0]);
+			return 1;
+		}
+	}
 	FILE *tty_in = fopen("/dev/tty", "r");
 	FILE *tty_out = fopen("/dev/tty", "w");
 	SCREEN *screen = newterm(NULL, tty_out, tty_in);
@@ -183,7 +195,7 @@ int main() {
 	int c;
 	size_t choice = 0;
 	size_t view_offset = 0;
-	print_matches(input, &current_matches, choice, view_offset, MAX_LINES, MAX_COLS);
+	print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 	while ((c = getch()) != EOF) {
 		if (c == KEY_BACKSPACE || c == 0x7F) { //backspace
 			input[--input_len] = '\0';
@@ -228,7 +240,7 @@ int main() {
 			}
 		}
 		update_choice(&choice, &view_offset, &current_matches, MAX_LINES);
-		print_matches(input, &current_matches, choice, view_offset, MAX_LINES, MAX_COLS);
+		print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 		if (current_matches.length == 1) {
 			output = strdup(current_matches.lines[0].str);
 			break;
@@ -237,7 +249,7 @@ int main() {
 	lstr_array_free(&input_lines);
 	endwin();
 	delscreen(screen);
-
+	free(prompt);
 	if (output) {
 		fflush(stdout);
 		printf("%s\n", output);
