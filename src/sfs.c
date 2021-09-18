@@ -131,7 +131,7 @@ void update_matches(const char *input, lstr_array *current_matches) {
 void print_matches(const char *input, lstr_array *current_matches, size_t choice, size_t view_offset, size_t max_lines, size_t max_cols) {
 	size_t input_len = strlen(input);
 	move(0, 0);
-	printw("%s\n\n", input);
+	printw("%s\n", input);
 	size_t i = view_offset;
 	size_t counter = 0;
 	for (; i < current_matches->length && counter < max_lines; ++i, ++counter) {
@@ -176,7 +176,7 @@ int main() {
 	}
 	char *output = NULL;
 
-	size_t MAX_LINES = (size_t)LINES - 3;
+	size_t MAX_LINES = (size_t)LINES - 2;
 	size_t MAX_COLS = (size_t)COLS - 1;
 	char input[1024] = {0};
 	int input_len = 0;
