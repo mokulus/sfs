@@ -147,12 +147,21 @@ void print_matches(const char *input, lstr_array *current_matches, size_t choice
 	move(0, (int)(strlen(input) + strlen(prompt)));
 }
 
-void update_choice(size_t *choice, size_t *view_offset, const lstr_array *current_matches, size_t max_lines) {
-	size_t max_choice = current_matches->length - 1;
-	if (*choice > max_choice)
-		*choice = max_choice;
-	if (*choice == *view_offset + max_lines) {
-		(*view_offset)++;
+void update_choice(ssize_t diff, size_t *choice, size_t *view_offset, const lstr_array *current_matches, size_t max_lines) {
+	if (diff < 0) {
+		diff += (ssize_t)current_matches->length;
+	}
+	*choice = (*choice + (size_t)diff) % current_matches->length;
+	size_t last_view_offset = current_matches->length - max_lines;
+	size_t last_rel_index = max_lines - 1;
+	if (*choice < *view_offset) {
+		*view_offset = *choice;
+	}
+	if (*choice > *view_offset + last_rel_index) {
+		*view_offset = *choice - last_rel_index;
+	}
+	if (*view_offset >= last_view_offset) {
+		*view_offset = last_view_offset;
 	}
 }
 
@@ -198,6 +207,7 @@ int main(int argc, char *argv[]) {
 	print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 	while ((c = getch()) != EOF) {
 		int should_break = 0;
+		ssize_t choice_diff = 0;
 		switch (c) {
 		case KEY_BACKSPACE:
 		case 0x7F:
@@ -221,13 +231,16 @@ int main(int argc, char *argv[]) {
 			should_break = 1;
 			break;
 		case KEY_UP:
-			if (choice != 0)
-				choice--;
-			if (choice < view_offset)
-				view_offset--;
+			choice_diff = -1;
 			break;
 		case KEY_DOWN:
-			choice++;
+			choice_diff = +1;
+			break;
+		case KEY_PPAGE:
+			choice_diff = -10;
+			break;
+		case KEY_NPAGE:
+			choice_diff = +10;
 			break;
 		case KEY_RESIZE:
 			endwin();
@@ -250,7 +263,7 @@ int main(int argc, char *argv[]) {
 		}
 		if (should_break)
 			break;
-		update_choice(&choice, &view_offset, &current_matches, MAX_LINES);
+		update_choice(choice_diff, &choice, &view_offset, &current_matches, MAX_LINES);
 		print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 		if (current_matches.length == 1) {
 			output = strdup(current_matches.lines[0].str);
