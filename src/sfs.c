@@ -169,11 +169,15 @@ void update_choice(ssize_t diff, size_t *choice, size_t *view_offset, const lstr
 
 int main(int argc, char *argv[]) {
 	char *prompt = strdup("");
+	unsigned select_only_match = 0;
 	int opt;
-	while ((opt = getopt(argc, argv, "p:")) != -1) {
+	while ((opt = getopt(argc, argv, "1p:")) != -1) {
 		switch (opt) {
 		case 'p':
 			prompt = strdup(optarg);
+			break;
+		case '1':
+			select_only_match = 1;
 			break;
 		default:
 			fprintf(stderr, "usage: %s [-p]\n", argv[0]);
@@ -267,7 +271,7 @@ int main(int argc, char *argv[]) {
 			break;
 		update_choice(choice_diff, &choice, &view_offset, &current_matches, MAX_LINES);
 		print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
-		if (current_matches.length == 1) {
+		if (select_only_match && current_matches.length == 1) {
 			output = strdup(current_matches.lines[0].str);
 			break;
 		}
