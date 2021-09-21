@@ -6,23 +6,18 @@
 #include <unistd.h>
 
 typedef struct {
-	char *str;
-	size_t length;
-} lstr;
-
-typedef struct {
-	lstr *lines;
+	char **lines;
 	size_t length;
 	size_t capacity;
-} lstr_array;
+} str_array;
 
-void lstr_array_init(lstr_array *array) {
+void str_array_init(str_array *array) {
 	array->capacity = 4;
 	array->length = 0;
 	array->lines = calloc(array->capacity, sizeof(*array->lines));
 }
 
-unsigned lstr_array_add(lstr_array *array, lstr l) {
+unsigned str_array_add(str_array *array, char *str) {
 	array->length++;
 	if (array->length > array->capacity) {
 		size_t new_cap = array->capacity * 3 / 2;
@@ -34,20 +29,20 @@ unsigned lstr_array_add(lstr_array *array, lstr l) {
 		array->lines = p;
 		array->capacity = new_cap;
 	}
-	array->lines[array->length-1] = l;
+	array->lines[array->length-1] = str;
 	return 1;
 }
 
-void lstr_array_free(lstr_array *array) {
+void str_array_free(str_array *array) {
 	for (size_t i = 0; i < array->length; ++i) {
-		free(array->lines[i].str);
+		free(array->lines[i]);
 	}
 	free(array->lines);
 }
 
-lstr_array read_stdin_lines() {
-	lstr_array la;
-	lstr_array_init(&la);
+str_array read_stdin_lines() {
+	str_array la;
+	str_array_init(&la);
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t nread;
@@ -57,8 +52,7 @@ lstr_array read_stdin_lines() {
 			nread--;
 		}
 		if (nread != 0) {
-			lstr l = {line, (size_t)nread};
-			lstr_array_add(&la, l);
+			str_array_add(&la, line);
 		} else {
 			free(line);
 		}
@@ -69,15 +63,15 @@ lstr_array read_stdin_lines() {
 	return la;
 }
 
-void lstr_tolower(lstr l) {
-	for (size_t i = 0; i < l.length; ++i) {
-		l.str[i] = (char)tolower(l.str[i]);
+void str_tolower(char *str) {
+	for (; str; ++str) {
+		*str = (char)tolower(*str);
 	}
 }
 
-lstr_array tokenize(const char *str, const char *delim) {
-	lstr_array la;
-	lstr_array_init(&la);
+str_array tokenize(const char *str, const char *delim) {
+	str_array la;
+	str_array_init(&la);
 	char *dstr = strdup(str);
 	if (!dstr)
 		goto fail;
@@ -87,10 +81,8 @@ lstr_array tokenize(const char *str, const char *delim) {
 		char *tokstr = strdup(tok);
 		if (!tokstr)
 			goto fail;
-		size_t len = strlen(tokstr);
-		lstr l = {tokstr, len};
-		lstr_tolower(l);
-		lstr_array_add(&la, l);
+		str_tolower(tokstr);
+		str_array_add(&la, tokstr);
 		s = NULL;
 	}
 fail:
@@ -102,37 +94,37 @@ int fuzzy_match(const char *str, const char *input) {
 	if (!input || strlen(input) == 0) { // match all when empty
 		return 1;
 	}
-	lstr_array tokens = tokenize(input, " ");
-	lstr line_lstr = {strdup(str), strlen(str)};
+	str_array tokens = tokenize(input, " ");
 	int ret = 1;
-	if (!line_lstr.str)
+	char *dstr = strdup(str);
+	if (!dstr)
 		goto fail;
-	lstr_tolower(line_lstr);
+	str_tolower(dstr);
 	for (size_t i = 0; i < tokens.length; ++i) {
-		if (!strstr(line_lstr.str, tokens.lines[i].str)) {
+		if (!strstr(dstr, tokens.lines[i])) {
 			ret = 0;
 			break;
 		}
 	}
 fail:
-	free(line_lstr.str);
-	lstr_array_free(&tokens);
+	free(dstr);
+	str_array_free(&tokens);
 	return ret;
 }
 
-void update_matches(const char *input, lstr_array *current_matches) {
-	lstr_array new_matches;
-	lstr_array_init(&new_matches);
+void update_matches(const char *input, str_array *current_matches) {
+	str_array new_matches;
+	str_array_init(&new_matches);
 	for (size_t i = 0; i < current_matches->length; ++i) {
-		if (fuzzy_match(current_matches->lines[i].str, input)) {
-			lstr_array_add(&new_matches, current_matches->lines[i]);
+		if (fuzzy_match(current_matches->lines[i], input)) {
+			str_array_add(&new_matches, current_matches->lines[i]);
 		}
 	}
 	free(current_matches->lines);
 	*current_matches = new_matches;
 }
 
-void print_matches(const char *input, lstr_array *current_matches, size_t choice, size_t view_offset, const char *prompt, size_t max_lines, size_t max_cols) {
+void print_matches(const char *input, str_array *current_matches, size_t choice, size_t view_offset, const char *prompt, size_t max_lines, size_t max_cols) {
 	move(0, 0);
 	printw("%s%s\n", prompt, input);
 	size_t i = view_offset;
@@ -150,7 +142,7 @@ void print_matches(const char *input, lstr_array *current_matches, size_t choice
 	move(0, (int)(strlen(input) + strlen(prompt)));
 }
 
-void update_choice(ssize_t diff, size_t *choice, size_t *view_offset, const lstr_array *current_matches, size_t max_lines) {
+void update_choice(ssize_t diff, size_t *choice, size_t *view_offset, const str_array *current_matches, size_t max_lines) {
 	if (current_matches->length == 0)
 		return;
 	if (diff < 0) {
@@ -198,11 +190,11 @@ int main(int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	set_escdelay(0);
 
-	lstr_array input_lines = read_stdin_lines();
-	lstr_array current_matches;
-	lstr_array_init(&current_matches);
+	str_array input_lines = read_stdin_lines();
+	str_array current_matches;
+	str_array_init(&current_matches);
 	for (size_t i = 0; i < input_lines.length; ++i) {
-		lstr_array_add(&current_matches, input_lines.lines[i]);
+		str_array_add(&current_matches, input_lines.lines[i]);
 	}
 	char *output = NULL;
 
@@ -225,15 +217,15 @@ int main(int argc, char *argv[]) {
 			if (input_len < 0)
 				input_len = 0;
 			free(current_matches.lines);
-			lstr_array_init(&current_matches);
+			str_array_init(&current_matches);
 			for (size_t i = 0; i < input_lines.length; ++i) {
-				lstr_array_add(&current_matches, input_lines.lines[i]);
+				str_array_add(&current_matches, input_lines.lines[i]);
 			}
 			update_matches(input, &current_matches);
 			clear();
 			break;
 		case '\n':
-			output = strdup(current_matches.lines[choice].str);
+			output = strdup(current_matches.lines[choice]);
 			should_break = 1;
 			break;
 		case 0x1B: // escape
@@ -275,12 +267,12 @@ int main(int argc, char *argv[]) {
 		update_choice(choice_diff, &choice, &view_offset, &current_matches, MAX_LINES);
 		print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 		if (select_only_match && current_matches.length == 1) {
-			output = strdup(current_matches.lines[0].str);
+			output = strdup(current_matches.lines[0]);
 			break;
 		}
 	}
 	free(current_matches.lines);
-	lstr_array_free(&input_lines);
+	str_array_free(&input_lines);
 	endwin();
 	delscreen(screen);
 	free(prompt);
