@@ -59,10 +59,13 @@ lstr_array read_stdin_lines() {
 		if (nread != 0) {
 			lstr l = {line, (size_t)nread};
 			lstr_array_add(&la, l);
+		} else {
+			free(line);
 		}
 		line = NULL;
 		len = 0;
 	}
+	free(line);
 	return la;
 }
 
@@ -276,10 +279,13 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
+	free(current_matches.lines);
 	lstr_array_free(&input_lines);
 	endwin();
 	delscreen(screen);
 	free(prompt);
+	fclose(tty_in);
+	fclose(tty_out);
 	if (output) {
 		fflush(stdout);
 		printf("%s\n", output);
