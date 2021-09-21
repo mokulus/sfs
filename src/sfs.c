@@ -47,11 +47,9 @@ str_array read_stdin_lines() {
 	size_t len = 0;
 	ssize_t nread;
 	while ((nread = getline(&line, &len, stdin)) != -1) {
-		if (nread != 0 && line[nread-1] == '\n') {
-			line[nread-1] = '\0';
-			nread--;
-		}
 		if (nread != 0) {
+			if (line[nread-1] == '\n')
+				line[nread-1] = '\0';
 			str_array_add(&la, line);
 		} else {
 			free(line);
@@ -136,9 +134,6 @@ void print_matches(const char *input, str_array *current_matches, size_t choice,
 		if (i == choice)
 			attroff(A_REVERSE);
 	}
-	/* for (; i < max_lines; ++i) { */
-	/* 	printw("\n"); */
-	/* } */
 	move(0, (int)(strlen(input) + strlen(prompt)));
 }
 
@@ -175,7 +170,7 @@ int main(int argc, char *argv[]) {
 			select_only_match = 1;
 			break;
 		default:
-			fprintf(stderr, "usage: %s [-p]\n", argv[0]);
+			fprintf(stderr, "usage: %s [-1] [-p prompt]\n", argv[0]);
 			return 1;
 		}
 	}
