@@ -62,7 +62,7 @@ str_array read_stdin_lines() {
 }
 
 void str_tolower(char *str) {
-	for (; str; ++str) {
+	for (; *str; ++str) {
 		*str = (char)tolower(*str);
 	}
 }
