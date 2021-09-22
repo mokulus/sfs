@@ -220,8 +220,10 @@ int main(int argc, char *argv[]) {
 			clear();
 			break;
 		case '\n':
-			output = strdup(current_matches.lines[choice]);
-			should_break = 1;
+			if (current_matches.length != 0) {
+				output = strdup(current_matches.lines[choice]);
+				should_break = 1;
+			}
 			break;
 		case 0x1B: // escape
 			should_break = 1;
