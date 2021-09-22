@@ -88,37 +88,37 @@ fail:
 	return la;
 }
 
-int fuzzy_match(const char *str, const char *input) {
-	if (!input || strlen(input) == 0) { // match all when empty
+int fuzzy_match(const char *str, str_array *tokens) {
+	if (tokens->length == 0) { // match all when empty
 		return 1;
 	}
-	str_array tokens = tokenize(input, " ");
 	int ret = 1;
 	char *dstr = strdup(str);
 	if (!dstr)
 		goto fail;
 	str_tolower(dstr);
-	for (size_t i = 0; i < tokens.length; ++i) {
-		if (!strstr(dstr, tokens.lines[i])) {
+	for (size_t i = 0; i < tokens->length; ++i) {
+		if (!strstr(dstr, tokens->lines[i])) {
 			ret = 0;
 			break;
 		}
 	}
 fail:
 	free(dstr);
-	str_array_free(&tokens);
 	return ret;
 }
 
 void update_matches(const char *input, str_array *current_matches) {
 	str_array new_matches;
 	str_array_init(&new_matches);
+	str_array tokens = tokenize(input, " ");
 	for (size_t i = 0; i < current_matches->length; ++i) {
-		if (fuzzy_match(current_matches->lines[i], input)) {
+		if (fuzzy_match(current_matches->lines[i], &tokens)) {
 			str_array_add(&new_matches, current_matches->lines[i]);
 		}
 	}
 	free(current_matches->lines);
+	str_array_free(&tokens);
 	*current_matches = new_matches;
 }
 
