@@ -256,7 +256,6 @@ int main(int argc, char *argv[]) {
 				clear();
 				printw("unknown %d %#x\n", c, c);
 				getch();
-				continue;
 			}
 		}
 		if (should_break)
@@ -276,7 +275,6 @@ int main(int argc, char *argv[]) {
 	fclose(tty_in);
 	fclose(tty_out);
 	if (output) {
-		fflush(stdout);
 		printf("%s\n", output);
 		free(output);
 		return 0;
