@@ -8,6 +8,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_executable(sfs
 	sfs.cpp)
 
+install(TARGETS sfs DESTINATION bin)
+
 find_package(Curses REQUIRED)
 include_directories(${CURSES_INCLUDE_DIR})
 target_link_libraries(sfs ${CURSES_LIBRARIES})
