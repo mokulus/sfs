@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <ncurses.h>
 
+#include <fmt/core.h>
+
 std::vector<std::string> read_stdin_lines() {
 	std::vector<std::string> lines;
 	for (std::string line; std::getline(std::cin, line);) {
@@ -116,7 +118,7 @@ int main(int argc, char *argv[]) {
 			select_only_match = 1;
 			break;
 		default:
-			fprintf(stderr, "usage: %s [-1] [-p prompt]\n", argv[0]);
+			std::cerr << fmt::format("usage: {} [-1] [-p prompt]\n", argv[0]);
 			return 1;
 		}
 	}
@@ -211,7 +213,7 @@ int main(int argc, char *argv[]) {
 	fclose(tty_in);
 	fclose(tty_out);
 	if (output) {
-		std::cout << *output;
+		std::cout << fmt::format("{}\n", *output);
 		return 0;
 	} else {
 		return 1;
