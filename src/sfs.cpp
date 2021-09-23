@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
 	fclose(tty_in);
 	fclose(tty_out);
 	if (output) {
-		printf("%s\n", output->c_str());
+		std::cout << *output;
 		return 0;
 	} else {
 		return 1;
