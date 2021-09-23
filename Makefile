@@ -4,20 +4,20 @@ LDFLAGS=-lncurses
 RFLAGS=-O2 -g -flto $(COMMON_FLAGS)
 DFLAGS=-g -fanalyzer $(COMMON_FLAGS)
 
-SRC = $(wildcard src/*.c)
-HDR = $(wildcard src/*.h)
+SRC = $(wildcard src/*.cpp)
+HDR = $(wildcard src/*.hpp)
 
-ROBJ = $(SRC:src/%.c=release/obj/%.o)
-DOBJ = $(SRC:src/%.c=debug/obj/%.o)
+ROBJ = $(SRC:src/%.cpp=release/obj/%.o)
+DOBJ = $(SRC:src/%.cpp=debug/obj/%.o)
 
 
 release: release/$(NAME)
 
 release/$(NAME): $(ROBJ)
-	$(CC) $(RFLAGS) $(LDFLAGS) $^ -o $@
+	$(CXX) $(RFLAGS) $(LDFLAGS) $^ -o $@
 
-release/obj/%.o: src/%.c | release/obj
-	$(CC) $(RFLAGS) $^ -c -o $@
+release/obj/%.o: src/%.cpp | release/obj
+	$(CXX) $(RFLAGS) $^ -c -o $@
 
 release/obj:
 	mkdir -p $@
@@ -26,10 +26,10 @@ release/obj:
 debug: debug/$(NAME)
 
 debug/$(NAME): $(DOBJ)
-	$(CC) $(DFLAGS) $(LDFLAGS) $^ -o $@
+	$(CXX) $(DFLAGS) $(LDFLAGS) $^ -o $@
 
-debug/obj/%.o: src/%.c | debug/obj
-	$(CC) $(DFLAGS) $^ -c -o $@
+debug/obj/%.o: src/%.cpp | debug/obj
+	$(CXX) $(DFLAGS) $^ -c -o $@
 
 debug/obj:
 	mkdir -p $@
