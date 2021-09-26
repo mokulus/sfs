@@ -98,6 +98,8 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
+
+	endwin();
 	if (output) {
 		std::cout << fmt::format("{}\n", *output);
 		return 0;
