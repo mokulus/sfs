@@ -51,14 +51,12 @@ int main(int argc, char *argv[]) {
 			matcher.pop();
 			clear();
 			break;
-		case '\n': {
-			const auto &matches = matcher.get_matches();
-			if (not matches.empty()) {
+		case '\n':
+			if (not matcher.get_matches().empty()) {
 				output = display.get_choice(matcher);
 				should_break = 1;
 			}
 			break;
-		}
 		case 0x1B: // escape
 			should_break = 1;
 			break;
