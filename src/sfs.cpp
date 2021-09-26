@@ -38,8 +38,7 @@ std::vector<std::string> tokenize(std::string str, std::string delim) {
 	return std::vector<std::string>(begin, end);
 }
 
-bool fuzzy_match(std::string str, const std::vector<std::string> &tokens) {
-	str = str_tolower(str);
+bool fuzzy_match(const std::string &str, const std::vector<std::string> &tokens) {
 	bool has_all_matches = true;
 	for (const auto& token : tokens) {
 		if (str.find(token) == std::string::npos) {
@@ -50,18 +49,22 @@ bool fuzzy_match(std::string str, const std::vector<std::string> &tokens) {
 	return has_all_matches;
 }
 
-void update_matches(const std::string &input, std::vector<std::reference_wrapper<std::string>> &matches) {
-	std::vector<std::reference_wrapper<std::string>> new_matches;
-	auto tokens = tokenize(input, " ");
-	std::copy_if(matches.begin(),
-			matches.end(),
-			std::back_inserter(new_matches),
-			[&tokens](const auto &match) { return fuzzy_match(match, tokens); });
-	std::swap(new_matches, matches);
+void update_matches(const std::string &input,
+		std::vector<std::size_t> &current_matches,
+		const std::vector<std::string> &all_matches) {
+	std::vector<std::size_t> new_matches;
+	const auto tokens = tokenize(input, " ");
+	for (auto match_id : current_matches) {
+		if (fuzzy_match(all_matches[match_id], tokens)) {
+			new_matches.push_back(match_id);
+		}
+	}
+	std::swap(new_matches, current_matches);
 }
 
 void print_matches(const std::string &input,
-		const std::vector<std::reference_wrapper<std::string>> &current_matches,
+		const std::vector<std::size_t> &current_matches,
+		const std::vector<std::string> &all_matches,
 		size_t choice,
 		size_t view_offset,
 		const std::string &prompt,
@@ -74,7 +77,7 @@ void print_matches(const std::string &input,
 	for (; i < current_matches.size() && counter < max_lines; ++i, ++counter) {
 		if (i == choice)
 			attron(A_REVERSE);
-		printw("%.*s\n", max_cols, current_matches[i].get().c_str());
+		printw("%.*s\n", max_cols, all_matches[current_matches[i]].c_str());
 		if (i == choice)
 			attroff(A_REVERSE);
 	}
@@ -84,7 +87,7 @@ void print_matches(const std::string &input,
 void update_choice(ssize_t diff,
 		size_t *choice,
 		size_t *view_offset,
-		const std::vector<std::reference_wrapper<std::string>> &current_matches,
+		const std::vector<std::size_t> &current_matches,
 		size_t max_lines) {
 	if (current_matches.empty())
 		return;
@@ -133,17 +136,27 @@ int main(int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	set_escdelay(0);
 
-	auto input_lines = read_stdin_lines();
-	std::vector<std::reference_wrapper<std::string>> current_matches(input_lines.begin(), input_lines.end());
+	const auto input_lines = read_stdin_lines();
+	const auto lower_input_lines = [&]() {
+		std::vector<std::string> lower_input_lines;
+		std::transform(input_lines.begin(),
+				input_lines.end(),
+				std::back_inserter(lower_input_lines),
+				[](const auto &str) { return str_tolower(str); });
+		return lower_input_lines;
+	} ();
+	std::vector<std::size_t> current_matches;
+	for (std::size_t i = 0; i < input_lines.size(); ++i) {
+		current_matches.push_back(i);
+	}
 	std::optional<std::string> output;
 	size_t MAX_LINES = (size_t)LINES - 2;
 	size_t MAX_COLS = (size_t)COLS - 1;
-	char input[1024] = {0};
-	int input_len = 0;
+	std::string input;
 	int c;
 	size_t choice = 0;
 	size_t view_offset = 0;
-	print_matches(input, current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
+	print_matches(input, current_matches, input_lines, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 	while ((c = getch()) != EOF) {
 		int should_break = 0;
 		ssize_t choice_diff = 0;
@@ -151,17 +164,18 @@ int main(int argc, char *argv[]) {
 		case KEY_BACKSPACE:
 		case 0x7F:
 		case '\b':
-			input[--input_len] = '\0';
-			if (input_len < 0)
-				input_len = 0;
+			if (input.length() > 0)
+				input.pop_back();
 			current_matches.clear();
-			std::copy(input_lines.begin(), input_lines.end(), std::back_inserter(current_matches));
-			update_matches(input, current_matches);
+			for (std::size_t i = 0; i < input_lines.size(); ++i) {
+				current_matches.push_back(i);
+			}
+			update_matches(input, current_matches, lower_input_lines);
 			clear();
 			break;
 		case '\n':
 			if (not current_matches.empty()) {
-				output = current_matches[choice].get();
+				output = input_lines[current_matches[choice]];
 				should_break = 1;
 			}
 			break;
@@ -189,8 +203,8 @@ int main(int argc, char *argv[]) {
 			break;
 		default:
 			if (isprint(c)) {
-				input[input_len++] = (char)tolower(c);
-				update_matches(input, current_matches);
+				input.push_back(static_cast<char>(tolower(c)));
+				update_matches(input, current_matches, lower_input_lines);
 				clear();
 			} else {
 				clear();
@@ -201,9 +215,9 @@ int main(int argc, char *argv[]) {
 		if (should_break)
 			break;
 		update_choice(choice_diff, &choice, &view_offset, current_matches, MAX_LINES);
-		print_matches(input, current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
+		print_matches(input, current_matches, input_lines, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
 		if (select_only_match && current_matches.size() == 1) {
-			output = current_matches[0].get();
+			output = input_lines[current_matches[0]];
 			break;
 		}
 	}
