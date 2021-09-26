@@ -2,13 +2,13 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <optional>
+#include <regex>
 #include <string>
 #include <vector>
-#include <regex>
-#include <optional>
 
-#include <unistd.h>
 #include <ncurses.h>
+#include <unistd.h>
 
 #include <fmt/core.h>
 
@@ -33,7 +33,8 @@ int main(int argc, char *argv[]) {
 			select_only_match = 1;
 			break;
 		default:
-			std::cerr << fmt::format("usage: {} [-1] [-p prompt]\n", argv[0]);
+			std::cerr << fmt::format("usage: {} [-1] [-p prompt]\n",
+						 argv[0]);
 			return 1;
 		}
 	}
@@ -51,7 +52,7 @@ int main(int argc, char *argv[]) {
 			clear();
 			break;
 		case '\n': {
-			const auto& matches = matcher.get_matches();
+			const auto &matches = matcher.get_matches();
 			if (not matches.empty()) {
 				output = display.get_choice(matcher);
 				should_break = 1;

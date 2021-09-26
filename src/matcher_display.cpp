@@ -1,10 +1,9 @@
 #include "matcher_display.hpp"
 
-MatcherDisplay::MatcherDisplay(const std::vector<std::string> &lines, std::string prompt)
-	: prompt(prompt),
-	  lines(lines),
-	  tty(fopen("/dev/tty", "r+")),
-	  screen(newterm(NULL, tty, tty)) {
+MatcherDisplay::MatcherDisplay(const std::vector<std::string> &lines,
+			       std::string prompt)
+    : prompt(prompt), lines(lines), tty(fopen("/dev/tty", "r+")),
+      screen(newterm(NULL, tty, tty)) {
 	set_term(screen);
 	noecho();
 	cbreak();
@@ -45,7 +44,8 @@ void MatcherDisplay::print(const Matcher &matcher) const {
 	move(0, (int)(prompt.length() + pattern.length()));
 }
 
-std::optional<std::string> MatcherDisplay::get_choice(const Matcher &matcher) const {
+std::optional<std::string>
+MatcherDisplay::get_choice(const Matcher &matcher) const {
 	const auto &matches = matcher.get_matches();
 	if (matches.empty()) {
 		return std::nullopt;
@@ -55,7 +55,7 @@ std::optional<std::string> MatcherDisplay::get_choice(const Matcher &matcher) co
 }
 
 void MatcherDisplay::update(ssize_t diff, const Matcher &matcher) {
-	const auto& matches = matcher.get_matches();
+	const auto &matches = matcher.get_matches();
 	const auto matches_count = matches.size();
 	if (matches_count == 0)
 		return;

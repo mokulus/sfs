@@ -1,16 +1,16 @@
 #ifndef MATCHER_DISPLAY_HPP
 #define MATCHER_DISPLAY_HPP
 
+#include "matcher.hpp"
+#include <ncurses.h>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
-#include <ncurses.h>
-#include "matcher.hpp"
 
 class MatcherDisplay {
-public:
+      public:
 	MatcherDisplay(const std::vector<std::string> &lines,
-			std::string prompt = "");
+		       std::string prompt = "");
 	~MatcherDisplay();
 	size_t get_max_lines() const;
 	size_t get_max_columns() const;
@@ -19,7 +19,8 @@ public:
 	void update(ssize_t diff, const Matcher &matcher);
 
 	std::string prompt;
-private:
+
+      private:
 	const std::vector<std::string> &lines;
 	FILE *tty;
 	SCREEN *screen;
