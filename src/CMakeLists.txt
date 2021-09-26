@@ -1,7 +1,7 @@
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Wall -O2")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wcast-qual -Wwrite-strings -Werror)
+add_compile_options(-g -Wall -Wextra -Wpedantic -Wconversion -Wcast-qual -Wwrite-strings -Werror)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
