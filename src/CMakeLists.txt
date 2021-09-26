@@ -6,7 +6,10 @@ add_compile_options(-g -Wall -Wextra -Wpedantic -Wconversion -Wcast-qual -Wwrite
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(sfs
-	sfs.cpp)
+	sfs.cpp
+	util.cpp
+	matcher.cpp
+	matcher_display.cpp)
 
 install(TARGETS sfs DESTINATION bin)
 
