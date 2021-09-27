@@ -15,6 +15,7 @@ MatcherDisplay::MatcherDisplay(const std::vector<std::string> &lines,
 
 MatcherDisplay::~MatcherDisplay() {
 	delscreen(screen);
+	endwin();
 	fclose(tty);
 }
 
@@ -29,6 +30,7 @@ size_t MatcherDisplay::get_max_columns() const {
 void MatcherDisplay::print(const Matcher &matcher) const {
 	const auto &pattern = matcher.get_pattern();
 	const auto &matches = matcher.get_matches();
+	erase();
 	move(0, 0);
 	printw("%s%s\n", prompt.c_str(), pattern.c_str());
 	for (size_t i = view_offset, counter = 0;
@@ -41,6 +43,7 @@ void MatcherDisplay::print(const Matcher &matcher) const {
 			attroff(A_REVERSE);
 	}
 	move(0, (int)(prompt.length() + pattern.length()));
+	refresh();
 }
 
 std::optional<std::string>

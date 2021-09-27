@@ -16,31 +16,36 @@
 #include "matcher_display.hpp"
 #include "util.hpp"
 
+struct Config {
+	bool select_only_match = false;
+	std::string prompt = "";
+};
+
+std::optional<std::string> match(const Config &config);
+std::optional<Config> get_opts(int argc, char *argv[]);
+
 int main(int argc, char *argv[]) {
+	auto config = get_opts(argc, argv);
+	if (!config) {
+		std::cerr << fmt::format("usage: {} [-1] [-p prompt]\n",
+					 argv[0]);
+		return 1;
+	}
+	auto output = match(*config);
+	if (output) {
+		std::cout << fmt::format("{}\n", *output);
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+std::optional<std::string> match(const Config &config) {
 	const auto input_lines = read_lines(std::cin);
 	Matcher matcher(input_lines);
 	MatcherDisplay display(input_lines);
-	std::optional<std::string> output;
-
-	unsigned select_only_match = 0;
-	int opt;
-	while ((opt = getopt(argc, argv, "1p:")) != -1) {
-		switch (opt) {
-		case 'p':
-			display.prompt = optarg;
-			break;
-		case '1':
-			select_only_match = 1;
-			break;
-		default:
-			std::cerr << fmt::format("usage: {} [-1] [-p prompt]\n",
-						 argv[0]);
-			return 1;
-		}
-	}
-
-	int c;
 	display.print(matcher);
+	int c;
 	while ((c = getch()) != EOF) {
 		int should_break = 0;
 		ssize_t choice_diff = 0;
@@ -49,12 +54,10 @@ int main(int argc, char *argv[]) {
 		case 0x7F:
 		case '\b':
 			matcher.pop();
-			clear();
 			break;
 		case '\n':
 			if (not matcher.get_matches().empty()) {
-				output = display.get_choice(matcher);
-				should_break = 1;
+				return display.get_choice(matcher);
 			}
 			break;
 		case 0x1B: // escape
@@ -73,35 +76,37 @@ int main(int argc, char *argv[]) {
 			choice_diff = +10;
 			break;
 		case KEY_RESIZE:
-			endwin();
-			refresh();
-			clear();
 			break;
 		default:
 			if (isprint(c)) {
 				matcher.push(static_cast<char>(c));
-				clear();
-			} else {
-				clear();
-				printw("unknown %d %#x\n", c, c);
-				getch();
 			}
 		}
 		if (should_break)
 			break;
 		display.update(choice_diff, matcher);
 		display.print(matcher);
-		if (select_only_match && matcher.get_matches().size() == 1) {
-			output = display.get_choice(matcher);
-			break;
+		if (config.select_only_match && matcher.get_matches().size() == 1) {
+			return display.get_choice(matcher);
 		}
 	}
+	return std::nullopt;
+}
 
-	endwin();
-	if (output) {
-		std::cout << fmt::format("{}\n", *output);
-		return 0;
-	} else {
-		return 1;
+std::optional<Config> get_opts(int argc, char *argv[]) {
+	Config config;
+	int opt;
+	while ((opt = getopt(argc, argv, "1p:")) != -1) {
+		switch (opt) {
+		case 'p':
+			config.prompt = optarg;
+			break;
+		case '1':
+			config.select_only_match = true;
+			break;
+		default:
+			return std::nullopt;
+		}
 	}
+	return config;
 }
