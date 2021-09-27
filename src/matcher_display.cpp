@@ -14,8 +14,8 @@ MatcherDisplay::MatcherDisplay(const std::vector<std::string> &lines,
 }
 
 MatcherDisplay::~MatcherDisplay() {
-	delscreen(screen);
 	endwin();
+	delscreen(screen);
 	fclose(tty);
 }
 
