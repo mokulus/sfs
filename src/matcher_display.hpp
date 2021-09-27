@@ -9,23 +9,25 @@
 
 class MatcherDisplay {
       public:
-	MatcherDisplay(const std::vector<std::string> &lines,
+	MatcherDisplay(const Matcher &matcher,
 		       std::string prompt = "");
 	~MatcherDisplay();
-	size_t get_max_lines() const;
-	size_t get_max_columns() const;
-	void print(const Matcher &matcher) const;
-	std::optional<std::string> get_choice(const Matcher &matcher) const;
-	void update(ssize_t diff, const Matcher &matcher);
+	std::size_t get_max_lines() const;
+	std::size_t get_max_columns() const;
+	void print();
+	std::optional<std::string> get_choice() const;
+	void move_choice(long diff);
 
 	std::string prompt;
 
       private:
-	const std::vector<std::string> &lines;
+	void update_view(std::size_t matches_count);
+
+	const Matcher &matcher;
 	FILE *tty;
 	SCREEN *screen;
-	size_t choice = 0;
-	size_t view_offset = 0;
+	std::size_t choice = 0;
+	std::size_t view_offset = 0;
 };
 
 #endif

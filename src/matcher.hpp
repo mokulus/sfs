@@ -13,6 +13,7 @@ class Matcher {
 	const std::string &get_pattern() const;
 	const std::vector<std::size_t> &get_matches() const;
 
+	const std::vector<std::string> &lines;
       private:
 	static std::vector<std::string>
 	lines_to_lower(const std::vector<std::string> &lines);
@@ -21,7 +22,6 @@ class Matcher {
 	void update_matches();
 	void reset_matches();
 
-	const std::vector<std::string> &lines;
 	const std::vector<std::string> lower_lines;
 	std::vector<std::size_t> matches;
 	std::string pattern;

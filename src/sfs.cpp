@@ -43,11 +43,10 @@ int main(int argc, char *argv[]) {
 std::optional<std::string> match(const Config &config) {
 	const auto input_lines = read_lines(std::cin);
 	Matcher matcher(input_lines);
-	MatcherDisplay display(input_lines);
-	display.print(matcher);
+	MatcherDisplay display(matcher);
+	display.print();
 	int c;
 	while ((c = getch()) != EOF) {
-		ssize_t choice_diff = 0;
 		switch (c) {
 		case KEY_BACKSPACE:
 		case 0x7F:
@@ -55,36 +54,31 @@ std::optional<std::string> match(const Config &config) {
 			matcher.pop();
 			break;
 		case '\n':
-			if (not matcher.get_matches().empty()) {
-				return display.get_choice(matcher);
-			}
-			break;
+			return display.get_choice();
 		case 0x1B: // escape
 			return std::nullopt;
-			break;
 		case KEY_UP:
-			choice_diff = -1;
+			display.move_choice(-1);
 			break;
 		case KEY_DOWN:
-			choice_diff = +1;
+			display.move_choice(1);
 			break;
 		case KEY_PPAGE:
-			choice_diff = -10;
+			display.move_choice(-10);
 			break;
 		case KEY_NPAGE:
-			choice_diff = +10;
+			display.move_choice(10);
 			break;
 		case KEY_RESIZE:
 			break;
 		default:
-			if (isprint(c)) {
+			if (std::isprint(c)) {
 				matcher.push(static_cast<char>(c));
 			}
 		}
-		display.update(choice_diff, matcher);
-		display.print(matcher);
+		display.print();
 		if (config.select_only_match && matcher.get_matches().size() == 1) {
-			return display.get_choice(matcher);
+			return display.get_choice();
 		}
 	}
 	return std::nullopt;
