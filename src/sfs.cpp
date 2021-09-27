@@ -47,7 +47,6 @@ std::optional<std::string> match(const Config &config) {
 	display.print(matcher);
 	int c;
 	while ((c = getch()) != EOF) {
-		int should_break = 0;
 		ssize_t choice_diff = 0;
 		switch (c) {
 		case KEY_BACKSPACE:
@@ -61,7 +60,7 @@ std::optional<std::string> match(const Config &config) {
 			}
 			break;
 		case 0x1B: // escape
-			should_break = 1;
+			return std::nullopt;
 			break;
 		case KEY_UP:
 			choice_diff = -1;
@@ -82,8 +81,6 @@ std::optional<std::string> match(const Config &config) {
 				matcher.push(static_cast<char>(c));
 			}
 		}
-		if (should_break)
-			break;
 		display.update(choice_diff, matcher);
 		display.print(matcher);
 		if (config.select_only_match && matcher.get_matches().size() == 1) {
