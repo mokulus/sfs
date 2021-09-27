@@ -77,7 +77,8 @@ std::optional<std::string> match(const Config &config) {
 			}
 		}
 		display.print();
-		if (config.select_only_match && matcher.get_matches().size() == 1) {
+		if (config.select_only_match &&
+		    matcher.get_matches().size() == 1) {
 			return display.get_choice();
 		}
 	}

@@ -9,8 +9,7 @@
 
 class MatcherDisplay {
       public:
-	MatcherDisplay(const Matcher &matcher,
-		       std::string prompt = "");
+	MatcherDisplay(const Matcher &matcher, std::string prompt = "");
 	~MatcherDisplay();
 	std::size_t get_max_lines() const;
 	std::size_t get_max_columns() const;

@@ -1,7 +1,6 @@
 #include "matcher_display.hpp"
 
-MatcherDisplay::MatcherDisplay(const Matcher &matcher,
-			       std::string prompt)
+MatcherDisplay::MatcherDisplay(const Matcher &matcher, std::string prompt)
     : prompt(prompt), matcher(matcher), tty(fopen("/dev/tty", "r+")),
       screen(newterm(NULL, tty, tty)) {
 	set_term(screen);
@@ -39,7 +38,9 @@ void MatcherDisplay::print() {
 	     ++i, ++counter) {
 		if (i == choice)
 			attron(A_REVERSE);
-		printw("%.*s\n", get_max_columns(), matcher.lines[matches[i]].c_str());
+		printw("%.*s\n",
+		       get_max_columns(),
+		       matcher.lines[matches[i]].c_str());
 		if (i == choice)
 			attroff(A_REVERSE);
 	}
@@ -47,8 +48,7 @@ void MatcherDisplay::print() {
 	refresh();
 }
 
-std::optional<std::string>
-MatcherDisplay::get_choice() const {
+std::optional<std::string> MatcherDisplay::get_choice() const {
 	const auto &matches = matcher.get_matches();
 	if (matches.empty()) {
 		return std::nullopt;

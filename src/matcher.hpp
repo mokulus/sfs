@@ -14,6 +14,7 @@ class Matcher {
 	const std::vector<std::size_t> &get_matches() const;
 
 	const std::vector<std::string> &lines;
+
       private:
 	static std::vector<std::string>
 	lines_to_lower(const std::vector<std::string> &lines);
