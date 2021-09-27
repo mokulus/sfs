@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 std::optional<std::string> match(const Config &config) {
 	const auto input_lines = read_lines(std::cin);
 	Matcher matcher(input_lines);
-	MatcherDisplay display(matcher);
+	MatcherDisplay display(matcher, config.prompt);
 	display.print();
 	int c;
 	while ((c = getch()) != EOF) {
