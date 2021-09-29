@@ -69,6 +69,8 @@ void MatcherDisplay::move_choice(long diff) {
 }
 
 void MatcherDisplay::update_view(std::size_t match_count) {
+	if (match_count == 0)
+		return;
 	choice %= match_count;
 	std::size_t last_view_offset = match_count - get_max_lines();
 	std::size_t last_rel_index = get_max_lines() - 1;
