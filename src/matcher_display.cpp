@@ -6,7 +6,6 @@ MatcherDisplay::MatcherDisplay(const Matcher &matcher, std::string prompt)
 	set_term(screen);
 	noecho();
 	cbreak();
-	scrollok(stdscr, TRUE);
 	idlok(stdscr, TRUE);
 	keypad(stdscr, TRUE);
 	set_escdelay(0);
