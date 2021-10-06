@@ -70,6 +70,7 @@ std::optional<std::string> match(const Config &config) {
 			display.move_choice(10);
 			break;
 		case KEY_RESIZE:
+			display.resize();
 			break;
 		default:
 			if (std::isprint(c)) {

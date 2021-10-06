@@ -14,6 +14,7 @@ class MatcherDisplay {
 	std::size_t get_max_lines() const;
 	std::size_t get_max_columns() const;
 	void print();
+	void resize();
 	std::optional<std::string> get_choice() const;
 	void move_choice(long diff);
 

@@ -47,6 +47,10 @@ void MatcherDisplay::print() {
 	refresh();
 }
 
+void MatcherDisplay::resize() {
+	endwin();
+}
+
 std::optional<std::string> MatcherDisplay::get_choice() const {
 	const auto &matches = matcher.get_matches();
 	if (matches.empty()) {
