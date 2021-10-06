@@ -18,11 +18,11 @@ MatcherDisplay::~MatcherDisplay() {
 }
 
 std::size_t MatcherDisplay::get_max_lines() const {
-	return static_cast<std::size_t>(LINES - 2);
+	return static_cast<std::size_t>(LINES - 1);
 }
 
 std::size_t MatcherDisplay::get_max_columns() const {
-	return static_cast<std::size_t>(COLS - 1);
+	return static_cast<std::size_t>(COLS);
 }
 
 void MatcherDisplay::print() {
@@ -38,7 +38,7 @@ void MatcherDisplay::print() {
 		if (i == choice)
 			attron(A_REVERSE);
 		printw("%.*s\n",
-		       get_max_columns(),
+		       get_max_columns() - 1,
 		       matcher.lines[matches[i]].c_str());
 		if (i == choice)
 			attroff(A_REVERSE);
@@ -79,7 +79,7 @@ void MatcherDisplay::update_view(std::size_t match_count) {
 	if (choice > view_offset + last_rel_index) {
 		view_offset = choice - last_rel_index;
 	}
-	if (view_offset >= last_view_offset) {
+	if (view_offset > last_view_offset) {
 		view_offset = last_view_offset;
 	}
 }
