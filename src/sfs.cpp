@@ -25,6 +25,7 @@ std::optional<std::string> match(const Config &config);
 std::optional<Config> get_opts(int argc, char *argv[]);
 
 int main(int argc, char *argv[]) {
+	setlocale(LC_ALL, "");
 	auto config = get_opts(argc, argv);
 	if (!config) {
 		std::cerr << fmt::format("usage: {} [-1] [-p prompt]\n",
@@ -53,14 +54,16 @@ std::optional<std::string> match(const Config &config) {
 		case '\b':
 			matcher.pop();
 			break;
-		case '\n':
+		case ctrl('m'): // enter
 			return display.get_choice();
 		case 0x1B: // escape
 			return std::nullopt;
 		case KEY_UP:
+		case ctrl('k'):
 			display.move_choice(-1);
 			break;
 		case KEY_DOWN:
+		case ctrl('j'):
 			display.move_choice(1);
 			break;
 		case KEY_PPAGE:

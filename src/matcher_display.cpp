@@ -5,6 +5,8 @@ MatcherDisplay::MatcherDisplay(const Matcher &matcher, std::string prompt)
       screen(newterm(NULL, tty, tty)) {
 	set_term(screen);
 	noecho();
+	nonl();
+	keypad(stdscr, TRUE);
 	cbreak();
 	idlok(stdscr, TRUE);
 	keypad(stdscr, TRUE);
@@ -38,7 +40,7 @@ void MatcherDisplay::print() {
 		if (i == choice)
 			attron(A_REVERSE);
 		printw("%.*s\n",
-		       get_max_columns() - 1,
+		       (int)get_max_columns() - 1,
 		       matcher.lines[matches[i]].c_str());
 		if (i == choice)
 			attroff(A_REVERSE);
