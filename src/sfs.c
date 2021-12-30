@@ -82,9 +82,8 @@ int fuzzy_match(const char *str, unsigned str_len, str_array *tokens)
 		const char *s = str;
 		while ((s = strstr(s, token))) {
 			size_t found = (size_t)(s - str);
-			if (found == 0 || !isalpha(str[found - 1]) ||
-			    found + tokens->lengths[i] == str_len ||
-			    !isalpha(str[found + tokens->lengths[i]])) {
+			if (found == 0 || !isalpha(str[found - 1])
+			    /* || found + tokens->lengths[i] == str_len ||  !isalpha(str[found + tokens->lengths[i]]) */ ) {
 				any_good = 1;
 				break;
 			}
@@ -98,7 +97,7 @@ int fuzzy_match(const char *str, unsigned str_len, str_array *tokens)
 	return ret;
 }
 
-void swap_str_array(str_array *arr, size_t a, size_t b)
+static inline void swap_str_array(str_array *arr, size_t a, size_t b)
 {
 	char *tmp_line = arr->lines[a];
 	char *tmp_lower = arr->lower_lines[a];
@@ -113,10 +112,10 @@ void swap_str_array(str_array *arr, size_t a, size_t b)
 	arr->lengths[b] = tmp_len;
 }
 
-size_t str_array_sort_partition(str_array *arr,
-				size_t low,
-				size_t high,
-				size_t *distances)
+static size_t str_array_sort_partition_distances(str_array *arr,
+						 size_t low,
+						 size_t high,
+						 size_t *distances)
 {
 	size_t pivot = high;
 	size_t i = low;
@@ -133,16 +132,51 @@ size_t str_array_sort_partition(str_array *arr,
 	return i;
 }
 
-void str_array_quicksort(str_array *arr,
-			 size_t low,
-			 size_t high,
-			 size_t *distances)
+static void str_array_quicksort_distances(str_array *arr,
+					  size_t low,
+					  size_t high,
+					  size_t *distances)
 {
 	if (low < high) {
-		size_t pi = str_array_sort_partition(arr, low, high, distances);
+		size_t pi = str_array_sort_partition_distances(arr,
+							       low,
+							       high,
+							       distances);
 		if (pi != 0)
-			str_array_quicksort(arr, low, pi - 1, distances);
-		str_array_quicksort(arr, pi + 1, high, distances);
+			str_array_quicksort_distances(arr,
+						      low,
+						      pi - 1,
+						      distances);
+		str_array_quicksort_distances(arr, pi + 1, high, distances);
+	}
+}
+
+static size_t
+str_array_sort_partition_strcmp(str_array *arr, size_t low, size_t high)
+{
+	size_t pivot = (low + high) / 2;
+	size_t i = low;
+	for (size_t j = low; j < high; ++j) {
+		unsigned la = arr->lengths[j];
+		unsigned lb = arr->lengths[pivot];
+		if (la < lb ||
+		    (la == lb && strcmp(arr->lower_lines[j],
+					arr->lower_lines[pivot]) < 0)) {
+			swap_str_array(arr, i, j);
+			i++;
+		}
+	}
+	swap_str_array(arr, i, pivot);
+	return i;
+}
+
+static void str_array_quicksort_strcmp(str_array *arr, size_t low, size_t high)
+{
+	if (low < high) {
+		size_t pi = str_array_sort_partition_strcmp(arr, low, high);
+		if (pi != 0)
+			str_array_quicksort_strcmp(arr, low, pi - 1);
+		str_array_quicksort_strcmp(arr, pi + 1, high);
 	}
 }
 
@@ -158,20 +192,24 @@ str_array matches(const char *input, str_array *lines)
 			str_array_add(&matches, strdup(lines->lines[i]));
 		}
 	}
-	size_t *distances = calloc(matches.length, sizeof(*distances));
-	for (size_t i = 0; i < matches.length; ++i) {
-		size_t total = 0;
-		for (size_t j = 0; j < tokens.length; ++j) {
-			total += lev_dist(matches.lower_lines[i],
-					  matches.lengths[i],
-					  tokens.lower_lines[j],
-					  tokens.lengths[j]);
-		}
-		distances[i] = total;
-	}
+	/* size_t *distances = calloc(matches.length, sizeof(*distances)); */
+	/* for (size_t i = 0; i < matches.length; ++i) { */
+	/* 	size_t total = 0; */
+	/* 	for (size_t j = 0; j < tokens.length; ++j) { */
+	/* 		total += lev_dist(matches.lower_lines[i], */
+	/* 				  matches.lengths[i], */
+	/* 				  tokens.lower_lines[j], */
+	/* 				  tokens.lengths[j]); */
+	/* 	} */
+	/* 	distances[i] = total; */
+	/* } */
+	/* if (matches.length > 1) */
+	/* 	str_array_quicksort(&matches, 0, matches.length - 1,
+	 * distances); */
+	/* free(distances); */
+
 	if (matches.length > 1)
-		str_array_quicksort(&matches, 0, matches.length - 1, distances);
-	free(distances);
+		str_array_quicksort_strcmp(&matches, 0, matches.length - 1);
 	str_array_free(&tokens);
 	return matches;
 }
