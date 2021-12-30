@@ -24,13 +24,6 @@ str_array read_stdin_lines()
 	return la;
 }
 
-void str_tolower(char *str)
-{
-	for (; *str; ++str) {
-		*str = (char)tolower(*str);
-	}
-}
-
 str_array tokenize(const char *str, const char *delim)
 {
 	str_array la;
@@ -44,7 +37,6 @@ str_array tokenize(const char *str, const char *delim)
 		char *tokstr = strdup(tok);
 		if (!tokstr)
 			goto fail;
-		str_tolower(tokstr);
 		str_array_add(&la, tokstr);
 		s = NULL;
 	}
@@ -56,18 +48,12 @@ fail:
 int fuzzy_match(const char *str, str_array *tokens)
 {
 	int ret = 1;
-	char *dstr = strdup(str);
-	if (!dstr)
-		goto fail;
-	str_tolower(dstr);
 	for (size_t i = 0; i < tokens->length; ++i) {
-		if (!strstr(dstr, tokens->lines[i])) {
+		if (!strstr(str, tokens->lines[i])) {
 			ret = 0;
 			break;
 		}
 	}
-fail:
-	free(dstr);
 	return ret;
 }
 
@@ -77,7 +63,7 @@ void update_matches(const char *input, str_array *current_matches)
 	str_array_init(&new_matches);
 	str_array tokens = tokenize(input, " ");
 	for (size_t i = 0; i < current_matches->length; ++i) {
-		if (fuzzy_match(current_matches->lines[i], &tokens)) {
+		if (fuzzy_match(current_matches->lower_lines[i], &tokens)) {
 			str_array_add(&new_matches, current_matches->lines[i]);
 		}
 	}
