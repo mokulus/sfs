@@ -256,11 +256,7 @@ int main(int argc, char *argv[])
 	set_escdelay(0);
 
 	str_array input_lines = read_stdin_lines();
-	str_array current_matches;
-	str_array_init(&current_matches);
-	for (size_t i = 0; i < input_lines.length; ++i) {
-		str_array_add(&current_matches, strdup(input_lines.lines[i]));
-	}
+	str_array current_matches = matches("", &input_lines);
 	char *output = NULL;
 
 	size_t MAX_LINES = (size_t)LINES - 2;
