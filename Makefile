@@ -1,5 +1,5 @@
 NAME=sfs
-COMMON_FLAGS=-Wall -Wextra -Wpedantic -Wconversion -Wcast-qual -Wwrite-strings -Werror
+COMMON_FLAGS=-Wall -Wextra -Wpedantic -Wconversion -Wcast-qual -Wwrite-strings
 LDFLAGS=-lncurses
 RFLAGS=-O2 -g -flto $(COMMON_FLAGS)
 DFLAGS=-g -fanalyzer $(COMMON_FLAGS)

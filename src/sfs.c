@@ -45,11 +45,52 @@ fail:
 	return la;
 }
 
-int fuzzy_match(const char *str, str_array *tokens)
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
+size_t
+lev_dist(const char *a, const size_t lena, const char *b, const size_t lenb)
+{
+	size_t *v0 = calloc(lenb + 1, sizeof(*v0));
+	size_t *v1 = calloc(lenb + 1, sizeof(*v1));
+	for (size_t i = 0; i < lena; ++i) {
+		v1[0] = i + 1;
+		for (size_t j = 0; j < lenb; ++j) {
+			size_t deletionCost = v0[j + 1] + 1;
+			size_t insertionCost = v1[j] + 1;
+			size_t substitutionCost = v0[j];
+			if (a[i] != b[j])
+				substitutionCost++;
+			v1[j + 1] = MIN(MIN(deletionCost, insertionCost),
+					substitutionCost);
+		}
+		size_t *tmp = v0;
+		v0 = v1;
+		v1 = tmp;
+	}
+	size_t dist = v0[lenb];
+	free(v0);
+	free(v1);
+	return dist;
+}
+
+int fuzzy_match(const char *str, unsigned str_len, str_array *tokens)
 {
 	int ret = 1;
 	for (size_t i = 0; i < tokens->length; ++i) {
-		if (!strstr(str, tokens->lines[i])) {
+		unsigned any_good = 0;
+		char *token = tokens->lower_lines[i];
+		const char *s = str;
+		while ((s = strstr(s, token))) {
+			size_t found = (size_t)(s - str);
+			if (found == 0 || !isalpha(str[found - 1]) ||
+			    found + tokens->lengths[i] == str_len ||
+			    !isalpha(str[found + tokens->lengths[i]])) {
+				any_good = 1;
+				break;
+			}
+			s++;
+		}
+		if (!any_good) {
 			ret = 0;
 			break;
 		}
@@ -57,19 +98,82 @@ int fuzzy_match(const char *str, str_array *tokens)
 	return ret;
 }
 
-void update_matches(const char *input, str_array *current_matches)
+void swap_str_array(str_array *arr, size_t a, size_t b)
 {
-	str_array new_matches;
-	str_array_init(&new_matches);
-	str_array tokens = tokenize(input, " ");
-	for (size_t i = 0; i < current_matches->length; ++i) {
-		if (fuzzy_match(current_matches->lower_lines[i], &tokens)) {
-			str_array_add(&new_matches, current_matches->lines[i]);
+	char *tmp_line = arr->lines[a];
+	char *tmp_lower = arr->lower_lines[a];
+	unsigned tmp_len = arr->lengths[a];
+
+	arr->lines[a] = arr->lines[b];
+	arr->lower_lines[a] = arr->lower_lines[b];
+	arr->lengths[a] = arr->lengths[b];
+
+	arr->lines[b] = tmp_line;
+	arr->lower_lines[b] = tmp_lower;
+	arr->lengths[b] = tmp_len;
+}
+
+size_t str_array_sort_partition(str_array *arr,
+				size_t low,
+				size_t high,
+				size_t *distances)
+{
+	size_t pivot = high;
+	size_t i = low;
+	for (size_t j = low; j < high; ++j) {
+		if (distances[j] < distances[pivot] ||
+		    (distances[j] == distances[pivot] &&
+		     strcmp(arr->lower_lines[j], arr->lower_lines[pivot]) <
+			 0)) {
+			swap_str_array(arr, i, j);
+			i++;
 		}
 	}
-	free(current_matches->lines);
+	swap_str_array(arr, i, high);
+	return i;
+}
+
+void str_array_quicksort(str_array *arr,
+			 size_t low,
+			 size_t high,
+			 size_t *distances)
+{
+	if (low < high) {
+		size_t pi = str_array_sort_partition(arr, low, high, distances);
+		if (pi != 0)
+			str_array_quicksort(arr, low, pi - 1, distances);
+		str_array_quicksort(arr, pi + 1, high, distances);
+	}
+}
+
+str_array matches(const char *input, str_array *lines)
+{
+	str_array matches;
+	str_array_init(&matches);
+	str_array tokens = tokenize(input, " ");
+	for (size_t i = 0; i < lines->length; ++i) {
+		if (fuzzy_match(lines->lower_lines[i],
+				lines->lengths[i],
+				&tokens)) {
+			str_array_add(&matches, strdup(lines->lines[i]));
+		}
+	}
+	size_t *distances = calloc(matches.length, sizeof(*distances));
+	for (size_t i = 0; i < matches.length; ++i) {
+		size_t total = 0;
+		for (size_t j = 0; j < tokens.length; ++j) {
+			total += lev_dist(matches.lower_lines[i],
+					  matches.lengths[i],
+					  tokens.lower_lines[j],
+					  tokens.lengths[j]);
+		}
+		distances[i] = total;
+	}
+	if (matches.length > 1)
+		str_array_quicksort(&matches, 0, matches.length - 1, distances);
+	free(distances);
 	str_array_free(&tokens);
-	*current_matches = new_matches;
+	return matches;
 }
 
 void print_matches(const char *input,
@@ -155,7 +259,7 @@ int main(int argc, char *argv[])
 	str_array current_matches;
 	str_array_init(&current_matches);
 	for (size_t i = 0; i < input_lines.length; ++i) {
-		str_array_add(&current_matches, input_lines.lines[i]);
+		str_array_add(&current_matches, strdup(input_lines.lines[i]));
 	}
 	char *output = NULL;
 
@@ -183,13 +287,8 @@ int main(int argc, char *argv[])
 			input[--input_len] = '\0';
 			if (input_len < 0)
 				input_len = 0;
-			free(current_matches.lines);
-			str_array_init(&current_matches);
-			for (size_t i = 0; i < input_lines.length; ++i) {
-				str_array_add(&current_matches,
-					      input_lines.lines[i]);
-			}
-			update_matches(input, &current_matches);
+			str_array_free(&current_matches);
+			current_matches = matches(input, &input_lines);
 			clear();
 			break;
 		case '\n':
@@ -223,7 +322,8 @@ int main(int argc, char *argv[])
 		default:
 			if (isprint(c)) {
 				input[input_len++] = (char)tolower(c);
-				update_matches(input, &current_matches);
+				str_array_free(&current_matches);
+				current_matches = matches(input, &input_lines);
 				clear();
 			} else {
 				clear();
@@ -250,7 +350,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-	free(current_matches.lines);
+	str_array_free(&current_matches);
 	str_array_free(&input_lines);
 	endwin();
 	delscreen(screen);

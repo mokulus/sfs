@@ -6,6 +6,7 @@
 typedef struct {
 	char **lines;
 	char **lower_lines;
+	unsigned *lengths;
 	size_t length;
 	size_t capacity;
 } str_array;
