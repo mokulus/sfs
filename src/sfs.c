@@ -1,25 +1,22 @@
-#include <stdio.h>
+#include "str_array.h"
+#include <ctype.h>
 #include <ncurses.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <unistd.h>
-#include "str_array.h"
 
-str_array read_stdin_lines() {
+str_array read_stdin_lines()
+{
 	str_array la;
 	str_array_init(&la);
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t nread;
-	while ((nread = getline(&line, &len, stdin)) != -1) {
-		if (nread != 0) {
-			if (line[nread-1] == '\n')
-				line[nread-1] = '\0';
-			str_array_add(&la, line);
-		} else {
-			free(line);
-		}
+	while ((nread = getline(&line, &len, stdin)) > 0) {
+		if (line[nread - 1] == '\n')
+			line[nread - 1] = '\0';
+		str_array_add(&la, line);
 		line = NULL;
 		len = 0;
 	}
@@ -27,13 +24,15 @@ str_array read_stdin_lines() {
 	return la;
 }
 
-void str_tolower(char *str) {
+void str_tolower(char *str)
+{
 	for (; *str; ++str) {
 		*str = (char)tolower(*str);
 	}
 }
 
-str_array tokenize(const char *str, const char *delim) {
+str_array tokenize(const char *str, const char *delim)
+{
 	str_array la;
 	str_array_init(&la);
 	char *dstr = strdup(str);
@@ -54,10 +53,8 @@ fail:
 	return la;
 }
 
-int fuzzy_match(const char *str, str_array *tokens) {
-	if (tokens->length == 0) { // match all when empty
-		return 1;
-	}
+int fuzzy_match(const char *str, str_array *tokens)
+{
 	int ret = 1;
 	char *dstr = strdup(str);
 	if (!dstr)
@@ -74,7 +71,8 @@ fail:
 	return ret;
 }
 
-void update_matches(const char *input, str_array *current_matches) {
+void update_matches(const char *input, str_array *current_matches)
+{
 	str_array new_matches;
 	str_array_init(&new_matches);
 	str_array tokens = tokenize(input, " ");
@@ -88,22 +86,35 @@ void update_matches(const char *input, str_array *current_matches) {
 	*current_matches = new_matches;
 }
 
-void print_matches(const char *input, str_array *current_matches, size_t choice, size_t view_offset, const char *prompt, size_t max_lines, size_t max_cols) {
+void print_matches(const char *input,
+		   str_array *current_matches,
+		   size_t choice,
+		   size_t view_offset,
+		   const char *prompt,
+		   size_t max_lines,
+		   size_t max_cols)
+{
 	move(0, 0);
 	printw("%s%s\n", prompt, input);
 	size_t i = view_offset;
 	size_t counter = 0;
-	for (; i < current_matches->length && counter < max_lines; ++i, ++counter) {
+	for (; i < current_matches->length && counter < max_lines;
+	     ++i, ++counter) {
 		if (i == choice)
 			attron(A_REVERSE);
-		printw("%.*s\n", max_cols, current_matches->lines[i]);
+		printw("%.*s\n", (int)max_cols, current_matches->lines[i]);
 		if (i == choice)
 			attroff(A_REVERSE);
 	}
 	move(0, (int)(strlen(input) + strlen(prompt)));
 }
 
-void update_choice(ssize_t diff, size_t *choice, size_t *view_offset, const str_array *current_matches, size_t max_lines) {
+void update_choice(ssize_t diff,
+		   size_t *choice,
+		   size_t *view_offset,
+		   const str_array *current_matches,
+		   size_t max_lines)
+{
 	if (current_matches->length == 0)
 		return;
 	if (diff < 0) {
@@ -123,7 +134,8 @@ void update_choice(ssize_t diff, size_t *choice, size_t *view_offset, const str_
 	}
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	char *prompt = strdup("");
 	unsigned select_only_match = 0;
 	int opt;
@@ -136,7 +148,9 @@ int main(int argc, char *argv[]) {
 			select_only_match = 1;
 			break;
 		default:
-			fprintf(stderr, "usage: %s [-1] [-p prompt]\n", argv[0]);
+			fprintf(stderr,
+				"usage: %s [-1] [-p prompt]\n",
+				argv[0]);
 			return 1;
 		}
 	}
@@ -166,7 +180,13 @@ int main(int argc, char *argv[]) {
 	int c;
 	size_t choice = 0;
 	size_t view_offset = 0;
-	print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
+	print_matches(input,
+		      &current_matches,
+		      choice,
+		      view_offset,
+		      prompt,
+		      MAX_LINES,
+		      MAX_COLS);
 	while ((c = getch()) != EOF) {
 		int should_break = 0;
 		ssize_t choice_diff = 0;
@@ -180,7 +200,8 @@ int main(int argc, char *argv[]) {
 			free(current_matches.lines);
 			str_array_init(&current_matches);
 			for (size_t i = 0; i < input_lines.length; ++i) {
-				str_array_add(&current_matches, input_lines.lines[i]);
+				str_array_add(&current_matches,
+					      input_lines.lines[i]);
 			}
 			update_matches(input, &current_matches);
 			clear();
@@ -226,8 +247,18 @@ int main(int argc, char *argv[]) {
 		}
 		if (should_break)
 			break;
-		update_choice(choice_diff, &choice, &view_offset, &current_matches, MAX_LINES);
-		print_matches(input, &current_matches, choice, view_offset, prompt, MAX_LINES, MAX_COLS);
+		update_choice(choice_diff,
+			      &choice,
+			      &view_offset,
+			      &current_matches,
+			      MAX_LINES);
+		print_matches(input,
+			      &current_matches,
+			      choice,
+			      view_offset,
+			      prompt,
+			      MAX_LINES,
+			      MAX_COLS);
 		if (select_only_match && current_matches.length == 1) {
 			output = strdup(current_matches.lines[0]);
 			break;
